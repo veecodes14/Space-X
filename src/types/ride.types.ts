@@ -1,0 +1,1 @@
+export type RideStatus = 'pending' |'scheduled' | 'aborted' | 'completed';

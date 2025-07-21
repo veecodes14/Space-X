@@ -1,0 +1,1 @@
+export type SpaceXLocation = 'base1405';
