@@ -15,7 +15,7 @@ export const addRocket = async (req: AuthRequest, res: Response): Promise<void> 
         const { name, rocketModel, fuelCapacity, active} = req.body;
         const userId = req.user?.id 
 
-        if(!name || !rocketModel || !fuelCapacity || active) {
+        if(!name || !rocketModel || !fuelCapacity || active === undefined) {
             res.status(400).json({
                 success: false,
                 message: "All fields are required"
@@ -92,7 +92,15 @@ export const getRockets = async(req: AuthRequest, res: Response): Promise<void> 
 
         }
 
-        const admin = await User.findById(userId).select('password -__v');
+        const user = await User.findById(userId).select('-password -__v');
+
+         if (!user || user.role !== 'admin') {
+            res.status(403).json({
+                success: false,
+                message: "Access denied. Admins only."
+            });
+            return
+        } 
 
         const rockets = await Rocket.find().select('-createdAt -updatedAt -__v')
 
@@ -113,10 +121,10 @@ export const deleteRocket = async(req: AuthRequest, res: Response): Promise<void
     try {
     const { id } = req.params;
 
-    const deletedRocket = await Rocket.findByIdAndUpdate(
+    const deletedRocket = await Rocket.findByIdAndDelete(
       id,
       { isDeleted: true },
-      { new: true }
+    //   { new: true }
     );
 
     if (!deletedRocket) {

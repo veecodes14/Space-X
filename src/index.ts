@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import cors from 'cors';
 import connectDB from './config/dbConnect';
-// import rootRouter from './routes/index.route';
+import rootRouter from './routes/index.routes';
 
 connectDB()
 dotenv.config()
@@ -27,7 +27,7 @@ app.use(
 );
 
 //routes
-// app.use("/api/v1", rootRouter);
+app.use("/api/v1", rootRouter);
 app.get('/', (req, res) => {
     res.send('Server Health Check: OK');
 });

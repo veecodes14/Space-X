@@ -5,18 +5,18 @@ import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizedRoles } from "../middlewares/role.middleware";
 
 /**
- * @route POST /api/v1/missions/request
+ * @route POST /api/v1/missions/schedule
  * @desc User Request ride(rider only)
  * @access Private
  */
-router.post('/request', authMiddleware, authorizedRoles("user"), scheduleMission);
+router.post('/schedule', authMiddleware, authorizedRoles("user"), scheduleMission);
 
-//@route GET /api/v1/rides/pending
+//@route GET /api/v1/missions/pending
 //@desc Driver views all pending rides (driver only), Fetch all new rides (pending)
 //@access Private
 router.get('/pending', authMiddleware, authorizedRoles("user"), getPendingMissions);
 
-//@route PATCH /api/v1/rides/:id/complete
+//@route PATCH /api/v1/missions/:id/complete
 //@desc Driver completes ride (driver only), (status change to completed)
 //@access Private
 router.patch('/:id/complete', authMiddleware, authorizedRoles("user"), completeMission);

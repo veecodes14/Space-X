@@ -11,10 +11,10 @@ import { User} from '../models/user.model';
 
 export const scheduleMission = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { rocket, launchDate, launchLocation, destination } = req.body;
+        const { name, rocket, launchDate, launchLocation, destination } = req.body;
         const userId = req.user?.id
 
-        if (!rocket || !launchDate || !launchLocation || !destination) {
+        if (!name || !rocket || !launchDate || !launchLocation || !destination) {
             res.status(400).json({
                 success: false,
                 message: "All fields are required"
@@ -33,23 +33,25 @@ export const scheduleMission = async(req: AuthRequest, res: Response): Promise<v
 
         const mission = await Mission.create(
             {
+                name: name,
                 rocket: rocket,
                 launchDate: launchDate,
                 launchLocation: launchLocation,
                 destination: destination,
                 user: user?._id,
+                status: 'scheduled'
 
             }
         )
 
-        if(!mission || mission.status !== 'pending') {
-            res.status(404).json({
-                success: false,
-                message: "Mission not available at this time"
-            });
-            return
+        // if(!mission || mission.status !== 'pending') {
+        //     res.status(404).json({
+        //         success: false,
+        //         message: "Mission not available at this time"
+        //     });
+        //     return
 
-        }
+        // }
 
         res.status(200).json({
             success: true,
@@ -83,7 +85,7 @@ export const getPendingMissions = async(req: AuthRequest, res: Response): Promis
         console.log(admin)
 
         const missions = await Mission.find({
-            status: "pending"
+            status: "scheduled"
         }).select('-createdAt -__v')
 
         res.status(200).json({
