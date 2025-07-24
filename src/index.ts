@@ -6,8 +6,9 @@ import cors from 'cors';
 import connectDB from './config/dbConnect';
 import rootRouter from './routes/index.routes';
 
+dotenv.config() 
 connectDB()
-dotenv.config()
+
 
 
 const app = express()

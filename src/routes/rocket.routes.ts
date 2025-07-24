@@ -7,24 +7,30 @@ import { authorizedRoles } from "../middlewares/role.middleware";
 
 /**
  * @route POST /api/v1/rockets/request
- * @desc User Request ride(rider only)
+ * @desc Admin adds rocket(admin only)
  * @access Private
  */
 router.post('/request', authMiddleware, authorizedRoles("admin"), addRocket);
 
-//@route GET /api/v1/rockets/:id/update
-//@desc Driver views all pending rides (driver only), Fetch all new rides (pending)
+/** 
+//@route PATCH /api/v1/rockets/:id/update
+//@desc Admin updates rocket info (admin only)
 //@access Private
+*/
 router.patch('/:id/update', authMiddleware, authorizedRoles("admin"), updateRocket);
 
-//@route PATCH /api/v1/rockets/fetch
-//@desc Driver completes ride (driver only), (status change to completed)
+/** 
+//@route GET /api/v1/rockets/fetch
+//@desc Admin fetches rockets (admin only), (status change to completed)
 //@access Private
+*/
 router.get('/fetch', authMiddleware, authorizedRoles("admin"), getRockets);
 
-//@route PATCH /api/v1/rockets/:id/delete
+/**
+//@route DELETE /api/v1/rockets/:id/delete
 //@desc Driver completes ride (driver only), (status change to completed)
 //@access Private
+*/
 router.delete('/:id/delete', authMiddleware, authorizedRoles("admin"), deleteRocket);
 
 

@@ -84,17 +84,27 @@ export const getPendingMissions = async(req: AuthRequest, res: Response): Promis
         const admin = await User.findById(userId).select('-password -__v');
         console.log(admin)
 
-        const missions = await Mission.find({
-            status: "scheduled"
-        }).select('-createdAt -__v')
+        if (!admin || admin.role !== 'admin') {
+            res.status(403).json({
+                success: false,
+                message: "Access denied. Admins only."
+            });
+            return;
+        }
+
+        const { status } = req.query;
+
+        const filter = status ? { status: status.toString() } : {};
+
+        const missions = await Mission.find(filter).select('-createdAt -__v');
 
         res.status(200).json({
             success: true,
-            message: "Rides fetched successfully.",
+            message: "Missions fetched successfully.",
             data: missions
         })
     }   catch (error) {
-        console.log({ message: "Error fetching rides", error});
+        console.log({ message: "Error fetching missions", error});
         res.status(500).json({success: false, error: "Internal Server error"});
         return
     }

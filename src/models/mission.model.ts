@@ -21,7 +21,7 @@ const MissionSchema: Schema = new Schema<IMission> ({
     launchDate: {type: Date, required: true},
     launchLocation: {type: String, enum: ['base1405'], default: 'base1405'},
     destination: {type: String, required: true},
-    status: {type: String, enum: ['pending', 'scheduled', 'aborted', 'completed'], default: 'scheduled'},
+    status: {type: String, enum: ['scheduled', 'aborted', 'completed'], default: 'scheduled'},
     scheduledBy: {type: Schema.ObjectId, ref: 'User'},
     createdAt: {type: Date, default: Date.now}
 },
