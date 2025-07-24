@@ -3,13 +3,15 @@ const router = express.Router();
 import {scheduleMission, completeMission, abortMission, getPendingMissions} from "../controllers/mission.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizedRoles } from "../middlewares/role.middleware";
+import { validateScheduleMission } from '../middlewares/mission.middleware';
+import { validateRequest } from '../middlewares/validate.request';
 
 /**
  * @route POST /api/v1/missions/schedule
  * @desc User Schedule mission(admin and user)
  * @access Private
  */
-router.post('/schedule', authMiddleware, authorizedRoles("user"), scheduleMission);
+router.post('/schedule', authMiddleware, authorizedRoles("user"), validateScheduleMission, validateRequest, scheduleMission);
 
 /**
 //@route GET /api/v1/missions/pending
