@@ -22,21 +22,46 @@ if (!JWT_SECRET) {
 export const register = async (req: Request, res: Response):Promise<void> => {
     try {
         const { name, gender, role, email, phone, password} = req.body
-        const hashedPassword = await bcrypt.hash(password, 10);
 
         const existingUser = await User.findOne({email})
 
         if (existingUser) {
-            res.status(404).json({
+            res.status(409).json({
                 success: false,
                 message: "User already exists"
             })
+            return
         }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = new User({name, gender, email, role, phone, password: hashedPassword })
 
         await newUser.save();
-        res.status(201).json({message: `User, ${name} registered`})
+        // res.status(201).json({message: `User, ${name} registered`})
+
+        const otp = generateOTP();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+        const newOtpVerification = new OTPVerification({
+        userId: newUser._id,
+        email,
+        otp,
+        expiresAt: otpExpires,
+        });
+
+        await newOtpVerification.save();
+
+        await sendEmail({
+        to: email,
+        subject: 'Verify your account',
+        text: `Hi ${name}, your OTP for registration is ${otp}. It will expire in 10 minutes.`,
+        });
+
+        res.status(201).json({
+            success: true,
+            message: `User registered successfully. An OTP has been sent to ${email}.`,
+        });
 
     } catch (error: any) {
         console.log({message: "Error signing up user", error: error});
@@ -63,17 +88,45 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             return
         }
 
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            res.status(400).json({
+                success: false,
+                message: "Invalid email format"
+            });
+            return;
+        }
+
         const existingUser = await User.findOne({email}).select('+password');
         if (!existingUser) {
-            res.status(400).json({
+            res.status(404).json({
                 success: false,
                 message: "User not found. Please sign up."
             })
             return
         }
 
+        if (!existingUser.isVerified) {
+        res.status(403).json({
+            success: false,
+            message: 'Please verify your email before logging in.'
+            });
+            return;
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, existingUser.password);
+        if (!isPasswordValid) {
+            res.status(401).json({
+                success: false,
+                message: "Incorrect password"
+            });
+            return;
+        }
+
         const token = jwt.sign(
-            {id: existingUser?._id, role: existingUser?.role},
+            {id: existingUser?._id, 
+            role: existingUser?.role,
+            email: existingUser.email},
             process.env.JWT_SECRET!,
             {expiresIn: "1h"}
         )
@@ -83,12 +136,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
         res.status(200).json({
             success: true,
-            message: "Passenger logged in successfully",
+            message: "Login successful",
             token,
             data: UserWithoutPassword
         })
     } catch (err) {
-        res.status(500).json({ message: "Something went wrong"})
+        console.error(err);
+        res.status(500).json({ success: false, message: "Something went wrong" });
     }
 };
 
@@ -107,13 +161,16 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
         if (!user) {
             res.status(200).json({ 
                 success: true,
-                message: "OTP sent if user exixts"
+                message: "OTP sent if user exists"
             })
              return
         }
 
         const otp = generateOTP();
         const hashedOtp = await bcrypt.hash(otp, 10);
+
+        await OTPVerification.deleteMany({ email });
+
 
         // save otp to db
         await new OTPVerification({
@@ -140,7 +197,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
         Space-X Support Team`;
 
         await sendEmail({
-            email: user.email,
+            to: user.email,
             subject: "Password Reset OTP",
             text: emailText,
         });
@@ -169,35 +226,52 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
             return
         }
 
-        const otpRecord = await OTPVerification.findOne({otp: {$exists: true}});
-        if (!otpRecord) {
-            res.status(400).json({success: false, message: "OTP not found or already used"})
+        // const otpRecord = await OTPVerification.findOne({otp: {$exists: true}});
+        // if (!otpRecord) {
+        //     res.status(400).json({success: false, message: "OTP not found or already used"})
+        //     return;
+        // }
+
+        const otpRecords = await OTPVerification.find({});
+
+        let matchedRecord = null;
+        for (const record of otpRecords) {
+            const isMatch = await bcrypt.compare(otp, record.otp);
+            if (isMatch) {
+                matchedRecord = record;
+                break;
+            }
+        }
+
+        if (!matchedRecord) {
+            res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
             return;
         }
 
-        if (otpRecord.expiresAt.getTime() < Date.now()) {
-            await OTPVerification.deleteMany({ userId: otpRecord.userId });
+
+        if (matchedRecord.expiresAt < new Date()) {
+            await OTPVerification.deleteMany({ userId: matchedRecord.userId });
             res.status(400).json({success: false, message: "OTP has expired. Request a new one."})
             return;
         }
         
-        const user = await User.findById(otpRecord.userId);
+        const user = await User.findById(matchedRecord.userId);
         if (!user) {
             res.status(400).json({success: false, message: "User not found"});
             return
         }
 
-        const validOtp = await bcrypt.compare(otp, otpRecord.otp);
-        if (!validOtp) {
-            res.status(400).json({ success: false, message: 'Invalid OTP' });
-            return;
-        }
+        // const validOtp = await bcrypt.compare(otp, matchedRecord.otp);
+        // if (!validOtp) {
+        //     res.status(400).json({ success: false, message: 'Invalid OTP' });
+        //     return;
+        // }
 
         // temp token if OTP is valid
 
         const tempToken = jwt.sign({
             userId: user._id,
-        }, JWT_SECRET as string, {expiresIn: '10m'})
+        }, process.env.JWT_SECRET as string, {expiresIn: '10m'})
 
         await OTPVerification.deleteMany({userId: user._id})
 
@@ -228,7 +302,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
         }
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            res.status(401).json({success: false, message: 'New Password is required and must be at least 8 characters' })
+            res.status(401).json({success: false, message: 'Authorization header missing or is invalid.' })
             return;
         }
 
@@ -243,7 +317,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
             if (err.name == "TokenExpiredError") {
                 res.status(401).json({
                     success: false,
-                    message: "Reset token has expired. Please request for a neq OTP.",
+                    message: "Reset token has expired. Please request for a new OTP.",
                 });
                 return;
             }
@@ -281,7 +355,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
         Space-X Support Team`;
 
         await sendEmail({
-            email: user.email,
+            to: user.email,
             subject: "Password Changed Successfully",
             text: emailText,
         });

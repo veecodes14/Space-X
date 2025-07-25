@@ -14,7 +14,7 @@ export const userData = async (req: AuthRequest, res: Response): Promise<void> =
             return;
         }
 
-        const user = await User.findById(userId).select('=password -__v');
+        const user = await User.findById(userId).select('-password -__v');
         if (!user) {
             res.status(404).json({
                 success: false,
@@ -59,17 +59,24 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
             name: name || user.name,
         };
 
-        await User.findByIdAndUpdate(userId, updatedInfo, {new: true, runValidators: true });
+        // await User.findByIdAndUpdate(userId, updatedInfo, {new: true, runValidators: true });
+
+        const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        updatedInfo,
+        { new: true, runValidators: true }
+        ).select('-password -__v');
+
 
         res.status(200).json({
             success: true,
             message : "User profile updated successfully.",
-            data: updatedInfo
+            data: updatedUser
         });
         return;
 
         } catch (error) {
-        console.log({ message: "Error viewing this user's profile", error});
+        console.log({ message: "Error updating this user's profile", error});
         res.status(500).json({success: false, error: "Internal Server Error" });
         return;
     }
@@ -106,6 +113,7 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise <
                 success: false,
                 message: "User does not have a password"
             });
+            return
         }
 
         const isPasswordValid = await bcrypt.compare(oldPassword, user.password)
@@ -120,12 +128,14 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise <
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
+        user.password = hashedPassword;
         user.passwordChangedAt = new Date();
-        await User.findByIdAndUpdate(userId, {password: hashedPassword}, {new: true, runValidators: true});
+        // await User.findByIdAndUpdate(userId, {password: hashedPassword}, {new: true, runValidators: true});
+        await user.save()
 
         res.status(200).json({
             success: true,
-            message: "Passord updated successfully."
+            message: "Password updated successfully."
         })
         return
     } catch (error) {
@@ -156,6 +166,7 @@ export const deleteAccount = async(req: AuthRequest, res: Response): Promise<voi
         }
 
         user.isAccountDeleted = true
+        user.deletedAt = new Date()
         await user.save();
 
         res.status(200).json({

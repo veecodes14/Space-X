@@ -4,6 +4,7 @@ import { AuthRequest } from '../types/auth.request';
 import { Schema, Types } from 'mongoose';
 import { User} from '../models/user.model';
 
+
 //@route POST /api/v1/mission/schedule
 //@desc Mission Schedule (user)
 //@access Private
@@ -14,6 +15,14 @@ export const scheduleMission = async(req: AuthRequest, res: Response): Promise<v
         const { name, rocket, launchDate, launchLocation, destination } = req.body;
         const userId = req.user?.id
 
+        if (!userId) {
+        res.status(401).json({
+            success: false,
+            message: "Unauthorized: No user found. Please login"
+        });
+        return;
+        }
+
         if (!name || !rocket || !launchDate || !launchLocation || !destination) {
             res.status(400).json({
                 success: false,
@@ -21,6 +30,7 @@ export const scheduleMission = async(req: AuthRequest, res: Response): Promise<v
             });
             return
         }
+        
 
         const user = await User.findById(userId).select('-password -__v');
         if (!user) {
@@ -38,7 +48,7 @@ export const scheduleMission = async(req: AuthRequest, res: Response): Promise<v
                 launchDate: launchDate,
                 launchLocation: launchLocation,
                 destination: destination,
-                user: user?._id,
+                scheduledBy: req.user?.id,
                 status: 'scheduled'
 
             }
@@ -70,7 +80,7 @@ export const scheduleMission = async(req: AuthRequest, res: Response): Promise<v
 //@desc Admin views all pending rides (admin only), Fetch all new rides (pending)
 //@access Private
 
-export const getPendingMissions = async(req: AuthRequest, res: Response): Promise<void> => {
+export const getMissions = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id
 
@@ -79,6 +89,7 @@ export const getPendingMissions = async(req: AuthRequest, res: Response): Promis
                 success: false,
                 message: "Unauthorized: No user found. Please login"
             })
+            return
         }
 
         const admin = await User.findById(userId).select('-password -__v');
@@ -115,6 +126,7 @@ export const completeMission = async(req: AuthRequest, res: Response): Promise<v
     try {
         const missionId = req.params.id;
         const userId = req.user?.id;
+        
         if(!missionId || !userId) {
             res.status(400).json({
                 success: false,
@@ -127,10 +139,20 @@ export const completeMission = async(req: AuthRequest, res: Response): Promise<v
         if(!mission || mission.status !== 'scheduled') {
             res.status(404).json({
                 success: false,
-                message: "Mission not in progress at this time. Please start the ride first.",
+                message: "Mission not in progress at this time",
             });
             return;
         }
+        
+        if (mission.scheduledBy.toString() !== userId) {
+        res.status(403).json({
+            success: false,
+            message: "You are not authorized to complete this mission."
+        });
+            return;
+        }
+
+
         mission.status = "completed";
         await mission.save();
 
@@ -150,6 +172,7 @@ export const abortMission = async(req: AuthRequest, res: Response): Promise<void
     try {
         const missionId = req.params.id;
         const userId = req.user?.id;
+
         if(!missionId || !userId) {
             res.status(400).json({
                 success: false,
@@ -158,14 +181,32 @@ export const abortMission = async(req: AuthRequest, res: Response): Promise<void
             return;
         }
         
-        const mission = await Mission.findById(missionId);
-        if(!mission || mission.status !== 'scheduled') {
+          const mission = await Mission.findById(missionId);
+
+        if (!mission) {
             res.status(404).json({
-                success: false,
-                message: "Mission not in progress at this time",
-            });
-            return;
+            success: false,
+            message: "Mission not found",
+        });
+        return;
         }
+
+        if (mission.scheduledBy.toString() !== userId) {
+            res.status(403).json({
+            success: false,
+            message: "You are not authorized to abort this mission",
+        });
+        return;
+        }
+
+        if (mission.status !== "scheduled") {
+            res.status(400).json({
+            success: false,
+            message: "Only scheduled missions can be aborted",
+        });
+        return;
+        }
+
         mission.status = "aborted";
         await mission.save();
 

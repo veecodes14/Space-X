@@ -25,6 +25,24 @@ export const addRocket = async (req: AuthRequest, res: Response): Promise<void> 
 
         const admin = await User.findById(userId).select('-password -__v');
 
+        if (admin?.role !== 'admin') {
+            res.status(403).json({
+                success: false,
+                message: "Only admins can add rockets"
+            });
+            return;
+            }
+        
+        const existingRocket = await Rocket.findOne({ name });
+        
+        if (existingRocket) {
+            res.status(409).json({
+                success: false,
+                message: "A rocket with this name already exists"
+            });
+            return;
+        }
+
         const rocket = await Rocket.create({
             name: name,
             rocketModel: rocketModel,
@@ -34,13 +52,13 @@ export const addRocket = async (req: AuthRequest, res: Response): Promise<void> 
             
         })
 
-        res.status(200).json({
+        res.status(201).json({
             success: true,
-            message: "Rocket addes successfully.",
+            message: "Rocket added successfully.",
             data: rocket
         })
     } catch (error) {
-        console.log({message: "Error requesting ride", error});
+        console.log({message: "Error adding rocket", error});
         res.status(500).json({ success: false, error: "Internal Server Error"})
         return
     }
@@ -49,7 +67,24 @@ export const addRocket = async (req: AuthRequest, res: Response): Promise<void> 
 export const updateRocket = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params
-        const updates = req.body
+        // const updates = req.body
+
+        const allowedFields = ['name', 'rocketModel', 'fuelCapacity', 'active'];
+        const updates = Object.fromEntries(
+            Object.entries(req.body).filter(([key]) => allowedFields.includes(key))
+        );
+
+
+        const userId = (req as AuthRequest).user?.id;
+        const user = await User.findById(userId);
+        if (user?.role !== 'admin') {
+            res.status(403).json({
+                success: false,
+                message: "Only admins can update rockets"
+            });
+            return
+            }
+
 
         const updatedRocket = await Rocket.findByIdAndUpdate(
             id,
@@ -62,6 +97,7 @@ export const updateRocket = async (req: Request, res: Response): Promise<void> =
                 success: false,
                 message: 'Rocket not found',
             })
+            return
         }
 
         res.status(200).json({
@@ -102,11 +138,11 @@ export const getRockets = async(req: AuthRequest, res: Response): Promise<void> 
             return
         } 
 
-        const rockets = await Rocket.find().select('-createdAt -updatedAt -__v')
+        const rockets = await Rocket.find({ isDeleted: false }).select('-createdAt -updatedAt -__v')
 
         res.status(200).json({
             success: true,
-            message: "Rockers fetched successfully.",
+            message: "RockeTs fetched successfully.",
             data: rockets
         })
     } catch (error) {
@@ -120,11 +156,21 @@ export const getRockets = async(req: AuthRequest, res: Response): Promise<void> 
 export const deleteRocket = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
     const { id } = req.params;
+    const userId = req.user?.id;
 
-    const deletedRocket = await Rocket.findByIdAndDelete(
+    const user = await User.findById(userId);
+    if (user?.role !== 'admin') {
+      res.status(403).json({
+        success: false,
+        message: "Only admins can delete rockets",
+      });
+      return;
+    }
+
+    const deletedRocket = await Rocket.findByIdAndUpdate(
       id,
       { isDeleted: true },
-    //   { new: true }
+      { new: true }
     );
 
     if (!deletedRocket) {

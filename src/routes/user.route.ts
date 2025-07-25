@@ -8,6 +8,8 @@ import {
 } from "../controllers/user.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizedRoles } from "../middlewares/role.middleware";
+import { validateRequest } from "../middlewares/validate.request";
+import { validateUpdateProfile, validateChangePassword } from "../validators/user.validator";
 
 /**
  * @swagger
@@ -67,7 +69,7 @@ import { authorizedRoles } from "../middlewares/role.middleware";
 //@route GET /api/v1/status/profile
 //@desc Get Data/Profile/Details of Logged-in user (Get your own profile)
 //@access private
-router.get('/profile', authMiddleware, authorizedRoles("rider", "driver"), userData)
+router.get('/profile', authMiddleware, validateUpdateProfile, validateRequest, userData)
 
 
 /**
@@ -186,7 +188,7 @@ router.put('/profile', authMiddleware, authorizedRoles("rider", "driver"), updat
 //@route PUT /api/v1/status/update/password
 //@desc Change password (when logged in)
 //@access private
-router.put('/update/password', authMiddleware, authorizedRoles("rider", "driver"), changePassword);
+router.put('/change-password', authMiddleware, validateChangePassword, validateRequest, changePassword);
 
 /**
  * @swagger
@@ -220,7 +222,7 @@ router.put('/update/password', authMiddleware, authorizedRoles("rider", "driver"
 //@route DELETE	/api/v1/status/account/delete
 //@desc Deactivate/Delete account (Soft Delete)
 //@access private
-router.delete('/account/delete', authMiddleware, authorizedRoles("rider","driver"), deleteAccount);
+router.delete('/account-delete', authMiddleware, deleteAccount);
 
 
 

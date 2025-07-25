@@ -1,1 +1,1 @@
-export type RideStatus =  |'scheduled' | 'aborted' | 'completed';
+export type RideStatus =  'scheduled' | 'aborted' | 'completed';

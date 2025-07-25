@@ -1,6 +1,8 @@
 import express from "express";
 const router = express.Router();
 import {register, login, forgotPassword, verifyOTP, resetPassword} from "../controllers/auth.controller";
+import { validateRegistration, validateLogin } from "../validators/auth.validator";
+import { validateRequest } from "../middlewares/validate.request";
 import { otpRequestLimiter, otpVerifyLimiter } from '../middlewares/otpLimiter.middleware'
 
 
@@ -37,7 +39,7 @@ import { otpRequestLimiter, otpVerifyLimiter } from '../middlewares/otpLimiter.m
 //@route POST /api/v1/auth/register
 //@desc Creates a new user
 //@access public
-router.post('/register', register);
+router.post('/register', validateRegistration, validateRequest, register);
 
 /**
  * @swagger
@@ -92,7 +94,7 @@ router.post('/register', register);
 //@route POST /api/v1/auth/login
 //@desc Login a user
 //@access public
-router.post('/login', login);
+router.post('/login', validateLogin, validateRequest, login);
 
 /**
  * @swagger

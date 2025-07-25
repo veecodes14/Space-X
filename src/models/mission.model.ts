@@ -12,7 +12,7 @@ export interface IMission extends Document {
     destination: string;
     status: RideStatus;
     scheduledBy: Schema.Types.ObjectId;
-    createdAt: Date;
+    // createdAt: Date;
 }
 
 const MissionSchema: Schema = new Schema<IMission> ({
@@ -23,7 +23,7 @@ const MissionSchema: Schema = new Schema<IMission> ({
     destination: {type: String, required: true},
     status: {type: String, enum: ['scheduled', 'aborted', 'completed'], default: 'scheduled'},
     scheduledBy: {type: Schema.ObjectId, ref: 'User'},
-    createdAt: {type: Date, default: Date.now}
+    // createdAt: {type: Date, default: Date.now}
 },
 {
     timestamps: true,

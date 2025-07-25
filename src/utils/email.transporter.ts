@@ -5,14 +5,15 @@ dotenv.config();
 
 // email options interface
 interface EmailOptions {
-    email: string;
+    to: string,
+    // email: string;
     subject: string;
     text: string;
 }
 
 // send email with transporter
 
-export const sendEmail = async ({email, subject, text}:EmailOptions): Promise<nodemailer.SentMessageInfo> => {
+export const sendEmail = async ({to, subject, text}:EmailOptions): Promise<nodemailer.SentMessageInfo> => {
     try {
         const transporter = nodemailer.createTransport({
             host: process.env.EMAIL_HOST,
@@ -32,14 +33,14 @@ export const sendEmail = async ({email, subject, text}:EmailOptions): Promise<no
 
         const mailOptions = {
             from: `"Space-X Support Team" <${process.env.EMAIL_USER}>`,
-            to: email,
+            to,
             subject,
             text,
 
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log(`Email sent to ${email}: ${info.messageId}`);
+        console.log(`Email sent to ${to}: ${info.messageId}`);
 
         return info;
 

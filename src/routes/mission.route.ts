@@ -1,9 +1,9 @@
 import express from 'express';
 const router = express.Router();
-import {scheduleMission, completeMission, abortMission, getPendingMissions} from "../controllers/mission.controller";
+import {scheduleMission, completeMission, abortMission, getMissions} from "../controllers/mission.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizedRoles } from "../middlewares/role.middleware";
-import { validateScheduleMission } from '../middlewares/mission.middleware';
+import { validateScheduleMission, validateMissionId, validateGetPendingMissions } from '../validators/mission.validator';
 import { validateRequest } from '../middlewares/validate.request';
 
 /**
@@ -21,21 +21,21 @@ router.post('/schedule', authMiddleware, authorizedRoles("user"), validateSchedu
 //@desc Admin views all scheduled missions (admin only), Fetch all missioms (scheduled)
 //@access Private
 */
-router.get('/pending', authMiddleware, authorizedRoles("admin"), getPendingMissions);
+router.get('/missions', authMiddleware, authorizedRoles("admin"), validateGetPendingMissions, validateRequest, getMissions);
 
 /** 
 //@route PATCH /api/v1/missions/:id/complete
 //@desc Admin completes mission (admin only), (status change to completed)
 //@access Private
 */
-router.patch('/:id/complete', authMiddleware, authorizedRoles("user"), completeMission);
+router.patch('/:id/complete', authMiddleware, authorizedRoles("user"), validateMissionId, validateRequest, completeMission);
 
 /**
 //@route PATCH /api/v1/rides/:id/abort
 //@desc User aborts mission, (status change to aborted)
 //@access Private
 */
-router.patch('/:id/abort', authMiddleware, authorizedRoles("user"), abortMission);
+router.patch('/:id/abort', authMiddleware, authorizedRoles("user"), validateMissionId, validateRequest, abortMission);
 
 
 export default router;
