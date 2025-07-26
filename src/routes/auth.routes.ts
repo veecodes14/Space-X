@@ -45,9 +45,6 @@ import { otpRequestLimiter, otpVerifyLimiter } from '../middlewares/otpLimiter.m
  *                 type: string
  *                 format: email
  *                 example: john@example.com
- *              role:
- *                 type: string
- *                 example: 0224424567
  *               password:
  *                 type: string
  *                 format: password
