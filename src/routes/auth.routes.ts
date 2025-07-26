@@ -20,25 +20,38 @@ import { otpRequestLimiter, otpVerifyLimiter } from '../middlewares/otpLimiter.m
  *             type: object
  *             required:
  *               - name
- *               - email
- *               - password
+ *               - gender
  *               - role
+ *               - username
+ *               - email
+ *               - phone
+ *               - password
  *             properties:
  *               name:
  *                 type: string
  *                 example: John Doe
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female]
+ *                 example: female
+ *              role:
+ *                 type: string
+ *                 enum: [user, admin]
+ *                 example: user
+ *              username:
+ *                 type: string
+ *                 example: johndoe
  *               email:
  *                 type: string
  *                 format: email
  *                 example: john@example.com
+ *              role:
+ *                 type: string
+ *                 example: 0224424567
  *               password:
  *                 type: string
  *                 format: password
  *                 example: Password123!
- *               role:
- *                 type: string
- *                 enum: [user, admin]
- *                 example: user
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -171,17 +184,8 @@ router.post('/otp/verify', otpVerifyLimiter, verifyOTP)
  *           schema:
  *             type: object
  *             required:
- *               - email
- *               - otp
  *               - newPassword
  *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: johndoe@example.com
- *               otp:
- *                 type: string
- *                 example: "123456"
  *               newPassword:
  *                 type: string
  *                 format: password
@@ -198,20 +202,6 @@ router.post('/otp/verify', otpVerifyLimiter, verifyOTP)
 //@access public
 */
 router.put('/otp/reset', resetPassword)
-
-/**
- * @swagger
- * /api/v1/ping:
- *   get:
- *     summary: Test route
- *     tags: [Test]
- *     responses:
- *       200:
- *         description: Pong
- */
-router.get('/ping', (req, res) => {
-  res.status(200).json({ message: 'pong' });
-});
 
 
 export default router;

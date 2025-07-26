@@ -22,20 +22,29 @@ import { validateRequest } from '../middlewares/validate.request';
  *           schema:
  *             type: object
  *             required:
- *               - rocketId
- *               - destination
+ *               - name
+ *               - rocket
  *               - launchDate
+ *               - launchLocation
+ *               - destination
  *             properties:
- *               rocketId:
+ *               name:
+ *                 type: string
+ *                 example: Blast
+ *               rocket:
  *                 type: string
  *                 example: 64f28abc23d1b1b9dc3c8e73
+ *               launchDate:
+ *                 type: string
+ *                 format: date
+ *                 example: 2025-08-01
+ *               launchLocation:
+ *                 type: string
+ *                 enum: base1405
+ *                 example: base1405
  *               destination:
  *                 type: string
  *                 example: Mars
- *               launchDate:
- *                 type: string
- *                 format: date-time
- *                 example: 2025-08-01T12:00:00Z
  *     responses:
  *       201:
  *         description: Mission scheduled successfully
