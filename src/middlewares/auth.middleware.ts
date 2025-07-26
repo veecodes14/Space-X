@@ -1,5 +1,6 @@
 import { Response, Request, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { User } from '../models/user.model';
 import { AuthRequest, CustomJwtPayload } from '../types/auth.request';
 import { emit } from 'process';
 
@@ -8,7 +9,7 @@ import { emit } from 'process';
 //     user?: string | jwt.JwtPayload
 // }
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
         const authHeader = req.headers.authorization
 
@@ -25,6 +26,16 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
         token,
         process.env.JWT_SECRET as string
         ) as CustomJwtPayload;
+
+        const user = await User.findById(decoded.id);
+
+        if (!user || user.isAccountDeleted) {
+            res.status(403).json({
+                success: false,
+                message: "Forbidden: This account is no longer active"
+            });
+            return;
+        }
 
         req.user = {
             id: decoded.id,

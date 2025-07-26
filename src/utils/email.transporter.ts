@@ -9,6 +9,7 @@ interface EmailOptions {
     // email: string;
     subject: string;
     text: string;
+    
 }
 
 // send email with transporter
@@ -44,8 +45,9 @@ export const sendEmail = async ({to, subject, text}:EmailOptions): Promise<nodem
 
         return info;
 
-    } catch (error) {
-        throw new Error(`Error sending mail: ${error}`);
+    } catch (error: any) {
+        console.error("Email Error:", error);
+        throw new Error(`Error sending mail: ${error.message || error}`);
     }
 
 }

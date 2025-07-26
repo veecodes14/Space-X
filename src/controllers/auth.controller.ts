@@ -21,11 +21,13 @@ if (!JWT_SECRET) {
 //@access Public
 export const register = async (req: Request, res: Response):Promise<void> => {
     try {
-        const { name, gender, role, email, phone, password} = req.body
+        console.log("📩 Registration request received:", req.body);
+        const { name, gender, role, username, email, phone, password} = req.body
 
         const existingUser = await User.findOne({email})
 
         if (existingUser) {
+            console.log("⚠️ User already exists:", email);
             res.status(409).json({
                 success: false,
                 message: "User already exists"
@@ -35,32 +37,35 @@ export const register = async (req: Request, res: Response):Promise<void> => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const newUser = new User({name, gender, email, role, phone, password: hashedPassword })
+        const newUser = new User({name, gender, email, username, role, phone, password: hashedPassword })
 
         await newUser.save();
+        console.log("✅ New user saved:", newUser._id);
         // res.status(201).json({message: `User, ${name} registered`})
 
-        const otp = generateOTP();
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+        // const otp = generateOTP();
+        // const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
-        const newOtpVerification = new OTPVerification({
-        userId: newUser._id,
-        email,
-        otp,
-        expiresAt: otpExpires,
-        });
+        // const newOtpVerification = new OTPVerification({
+        // userId: newUser._id,
+        // email,
+        // otp,
+        // expiresAt: otpExpires,
+        // });
 
-        await newOtpVerification.save();
+        // await newOtpVerification.save();
+        // console.log("✅ OTP saved:", otp);
 
-        await sendEmail({
-        to: email,
-        subject: 'Verify your account',
-        text: `Hi ${name}, your OTP for registration is ${otp}. It will expire in 10 minutes.`,
-        });
+        // await sendEmail({
+        // to: email,
+        // subject: 'Verify your account',
+        // text: `Hi ${name}, your OTP for registration is ${otp}. It will expire in 10 minutes.`,
+        // });
+        // console.log("📧 Email sent to:", email);
 
         res.status(201).json({
             success: true,
-            message: `User registered successfully. An OTP has been sent to ${email}.`,
+            message: "User registered successfully.",
         });
 
     } catch (error: any) {
@@ -97,7 +102,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        const existingUser = await User.findOne({email}).select('+password');
+        const existingUser = await User.findOne({email, isAccountDeleted: false}).select('+password');
         if (!existingUser) {
             res.status(404).json({
                 success: false,
@@ -106,13 +111,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             return
         }
 
-        if (!existingUser.isVerified) {
-        res.status(403).json({
-            success: false,
-            message: 'Please verify your email before logging in.'
-            });
-            return;
-        }
+        // if (!existingUser.isVerified) {
+        // res.status(403).json({
+        //     success: false,
+        //     message: 'Please verify your email before logging in.'
+        //     });
+        //     return;
+        // }
 
         const isPasswordValid = await bcrypt.compare(password, existingUser.password);
         if (!isPasswordValid) {

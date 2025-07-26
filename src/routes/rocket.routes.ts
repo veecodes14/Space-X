@@ -7,13 +7,89 @@ import { validateAddRocket, validateUpdateRocket } from '../validators/rocket.va
 import { validateRequest } from '../middlewares/validate.request';
 
 
+
 /**
- * @route POST /api/v1/rockets/request
+ * @swagger
+ * /api/v1/rockets/add:
+ *   post:
+ *     summary: Add a new rocket
+ *     tags: [Rockets]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - model
+ *               - fuelCapacity
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Falcon 9
+ *               model:
+ *                 type: string
+ *                 example: SpaceX-F9
+ *               fuelCapacity:
+ *                 type: number
+ *                 example: 5000
+ *     responses:
+ *       201:
+ *         description: Rocket added successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+/**
+ * @route POST /api/v1/rockets/add
  * @desc Admin adds rocket(admin only)
  * @access Private
  */
 router.post('/add', authMiddleware, authorizedRoles("admin"), validateAddRocket, validateRequest, addRocket);
 
+
+/**
+ * @swagger
+ * /api/v1/rockets/:id/update:
+ *   patch:
+ *     summary: Update rocket information
+ *     tags: [Rockets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Rocket ID
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               model:
+ *                 type: string
+ *               fuelCapacity:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Rocket updated successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Rocket not found
+ *       401:
+ *         description: Unauthorized
+ */
 /** 
 //@route PATCH /api/v1/rockets/:id/update
 //@desc Admin updates rocket info (admin only)
@@ -21,6 +97,21 @@ router.post('/add', authMiddleware, authorizedRoles("admin"), validateAddRocket,
 */
 router.patch('/:id/update', authMiddleware, authorizedRoles("admin"), validateUpdateRocket, validateRequest, updateRocket);
 
+
+/**
+ * @swagger
+ * /api/v1/rockets/fetch:
+ *   get:
+ *     summary: Fetch all rockets
+ *     tags: [Rockets]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of rockets
+ *       401:
+ *         description: Unauthorized
+ */
 /** 
 //@route GET /api/v1/rockets/fetch
 //@desc Admin fetches rockets (admin only), (status change to completed)
@@ -28,9 +119,33 @@ router.patch('/:id/update', authMiddleware, authorizedRoles("admin"), validateUp
 */
 router.get('/fetch', authMiddleware, authorizedRoles("admin"), getRockets);
 
+
+/**
+ * @swagger
+ * /api/v1/rockets/:id/delete:
+ *   delete:
+ *     summary: Delete a rocket
+ *     tags: [Rockets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Rocket ID
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Rocket deleted successfully
+ *       404:
+ *         description: Rocket not found
+ *       401:
+ *         description: Unauthorized
+ */
 /**
 //@route DELETE /api/v1/rockets/:id/delete
-//@desc Driver completes ride (driver only), (status change to completed)
+//@desc Admin deletes rocket (admin only)
 //@access Private
 */
 router.delete('/:id/delete', authMiddleware, authorizedRoles("admin"), deleteRocket);

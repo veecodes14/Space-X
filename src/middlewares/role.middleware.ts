@@ -8,7 +8,6 @@ interface AuthRequest extends Request {
 export const authorizedRoles = (...roles: string[]) => {
     return (req: AuthRequest, res: Response, next: NextFunction): void => {
 
-        const role = req.user?.role
         if (!req.user) {
             res.status(401).json({
                 success: false,
@@ -16,6 +15,9 @@ export const authorizedRoles = (...roles: string[]) => {
             });
             return;
         }
+
+        const role = req.user?.role
+
 
         if (!role) {
             res.status(401).json({
