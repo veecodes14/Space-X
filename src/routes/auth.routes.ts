@@ -34,17 +34,20 @@ import { otpRequestLimiter, otpVerifyLimiter } from '../middlewares/otpLimiter.m
  *                 type: string
  *                 enum: [male, female]
  *                 example: female
- *              role:
+ *               role:
  *                 type: string
  *                 enum: [user, admin]
  *                 example: user
- *              username:
+ *               username:
  *                 type: string
  *                 example: johndoe
  *               email:
  *                 type: string
  *                 format: email
  *                 example: john@example.com
+ *               phone:
+ *                 type: string
+ *                 example: "+1234567890"
  *               password:
  *                 type: string
  *                 format: password
