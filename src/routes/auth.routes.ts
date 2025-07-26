@@ -8,7 +8,7 @@ import { otpRequestLimiter, otpVerifyLimiter } from '../middlewares/otpLimiter.m
 
 /**
  * @swagger
- * /auth/register:
+ * /api/v1/auth/register:
  *   post:
  *     summary: Register a new user
  *     tags: [Auth]
@@ -55,7 +55,7 @@ import { otpRequestLimiter, otpVerifyLimiter } from '../middlewares/otpLimiter.m
  *     responses:
  *       201:
  *         description: User registered successfully
- *       400:
+ *       500:
  *         description: Validation error
  */
 /** 
@@ -69,7 +69,7 @@ router.post('/register', validateRegistration, validateRequest, register);
 
 /**
  * @swagger
- * /auth/login:
+ * /api/v1/auth/login:
  *   post:
  *     summary: Login a user
  *     tags: [Auth]
@@ -92,7 +92,7 @@ router.post('/register', validateRegistration, validateRequest, register);
  *     responses:
  *       200:
  *         description: Login successful
- *       400:
+ *       500:
  *         description: Invalid credentials
  */
 /** 
@@ -105,7 +105,7 @@ router.post('/login', validateLogin, validateRequest, login);
 
 /**
  * @swagger
- * /auth/forgot-password:
+ * /api/v1/auth/forgot-password:
  *   post:
  *     summary: Request OTP to reset password
  *     tags: [Auth]
@@ -125,7 +125,7 @@ router.post('/login', validateLogin, validateRequest, login);
  *     responses:
  *       200:
  *         description: OTP sent to user's email
- *       400:
+ *       500:
  *         description: Email not found or validation error
  */
 /** 
@@ -137,7 +137,7 @@ router.post('/forgot-password', otpRequestLimiter, forgotPassword)
 
 /**
  * @swagger
- * /auth/otp/verify:
+ * /api/v1/auth/otp/verify:
  *   post:
  *     summary: Verify OTP for password reset
  *     tags: [Auth]
@@ -161,7 +161,7 @@ router.post('/forgot-password', otpRequestLimiter, forgotPassword)
  *     responses:
  *       200:
  *         description: OTP verified successfully
- *       400:
+ *       500:
  *         description: Invalid or expired OTP
  */
 /** 
@@ -173,7 +173,7 @@ router.post('/otp/verify', otpVerifyLimiter, verifyOTP)
 
 /**
  * @swagger
- * /auth/otp/reset:
+ * /api/v1/auth/otp/reset:
  *   put:
  *     summary: Reset password using verified OTP
  *     tags: [Auth]
@@ -193,7 +193,7 @@ router.post('/otp/verify', otpVerifyLimiter, verifyOTP)
  *     responses:
  *       200:
  *         description: Password reset successful
- *       400:
+ *       500:
  *         description: Invalid OTP or password reset failed
  */
 /** 

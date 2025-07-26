@@ -24,18 +24,22 @@ import { validateRequest } from '../middlewares/validate.request';
  *             type: object
  *             required:
  *               - name
- *               - model
+ *               - rocketModel
  *               - fuelCapacity
+ *               - active
  *             properties:
  *               name:
  *                 type: string
  *                 example: Falcon 9
- *               model:
+ *               rocketModel:
  *                 type: string
  *                 example: SpaceX-F9
  *               fuelCapacity:
  *                 type: number
  *                 example: 5000
+ *               active:
+ *                 type: boolean
+ *                 example: true
  *     responses:
  *       201:
  *         description: Rocket added successfully
@@ -76,7 +80,7 @@ router.post('/add', authMiddleware, authorizedRoles("admin"), validateAddRocket,
  *             properties:
  *               name:
  *                 type: string
- *               model:
+ *               rocketModel:
  *                 type: string
  *               fuelCapacity:
  *                 type: number
