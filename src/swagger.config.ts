@@ -15,6 +15,10 @@ const options = {
         url: 'http://localhost:3000',
         description: 'Development server',
       },
+      {
+        url: 'https://orbital-ops.onrender.com',
+        description: 'Live server',
+      }
     ],
     components: {
       securitySchemes: {
@@ -27,7 +31,7 @@ const options = {
     },
     security: [{ bearerAuth: [] }],
   },
-  apis: ['./dist/routes/*.js'], 
+  apis: ['./src/routes/*.ts'], 
 };
 
 const swaggerSpec = swaggerJsdoc(options);
