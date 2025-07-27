@@ -3,7 +3,7 @@ import swaggerUi from 'swagger-ui-express';
 import { Express } from 'express';
 
 const options = {
-  swaggerDefinition: {
+  definition: {
     openapi: '3.0.0',
     info: {
       title: 'Space Mission Control API',
