@@ -21,13 +21,11 @@ if (!JWT_SECRET) {
 //@access Public
 export const register = async (req: Request, res: Response):Promise<void> => {
     try {
-        console.log("📩 Registration request received:", req.body);
         const { name, gender, role, username, email, phone, password} = req.body
 
         const existingUser = await User.findOne({email})
 
         if (existingUser) {
-            console.log("⚠️ User already exists:", email);
             res.status(409).json({
                 success: false,
                 message: "User already exists"
@@ -40,7 +38,6 @@ export const register = async (req: Request, res: Response):Promise<void> => {
         const newUser = new User({name, gender, email, username, role, phone, password: hashedPassword })
 
         await newUser.save();
-        console.log("✅ New user saved:", newUser._id);
         // res.status(201).json({message: `User, ${name} registered`})
 
         // const otp = generateOTP();
@@ -54,14 +51,13 @@ export const register = async (req: Request, res: Response):Promise<void> => {
         // });
 
         // await newOtpVerification.save();
-        // console.log("✅ OTP saved:", otp);
 
         // await sendEmail({
         // to: email,
         // subject: 'Verify your account',
         // text: `Hi ${name}, your OTP for registration is ${otp}. It will expire in 10 minutes.`,
         // });
-        // console.log("📧 Email sent to:", email);
+
 
         res.status(201).json({
             success: true,

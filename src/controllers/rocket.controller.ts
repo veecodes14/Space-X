@@ -5,10 +5,11 @@ import { AuthRequest } from '../types/auth.request';
 import { Schema, Types } from 'mongoose';
 import { User} from '../models/user.model';
 
-
+/** 
 //@route POST /api/v1/rockets/add
-//@desc Rider Request ride(rider only)
+//@desc User creates a new rocket
 //@access Private
+*/
 
 export const addRocket = async (req: AuthRequest, res: Response): Promise<void> => {
     try {

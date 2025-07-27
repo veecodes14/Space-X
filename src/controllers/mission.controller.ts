@@ -1,15 +1,14 @@
 import { Request, Response } from 'express';
 import { Mission } from '../models/mission.model';
 import { AuthRequest } from '../types/auth.request';
-import { Schema, Types } from 'mongoose';
+import { Schema, Types, isValidObjectId } from 'mongoose';
 import { User} from '../models/user.model';
+import { Rocket } from '../models/rocket.model';
 
 
 //@route POST /api/v1/mission/schedule
 //@desc Mission Schedule (user)
 //@access Private
-
-
 export const scheduleMission = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { name, rocket, launchDate, launchLocation, destination } = req.body;
@@ -28,6 +27,24 @@ export const scheduleMission = async(req: AuthRequest, res: Response): Promise<v
                 success: false,
                 message: "All fields are required"
             });
+            return
+        }
+
+        if (!isValidObjectId(rocket)) {
+            res.status(400).json({
+                success: false,
+                message: "Invalid rocket ID"
+            });
+            return;
+        }
+
+        const existingRocket = await Rocket.findById(rocket)
+
+        if (existingRocket) {
+            res.status(404).json({
+                success: false,
+                message: "Rocket does not exist"
+            })
             return
         }
         
@@ -76,6 +93,7 @@ export const scheduleMission = async(req: AuthRequest, res: Response): Promise<v
     }
 }
 
+
 //@route GET /api/v1/missions/pending
 //@desc Admin views all pending rides (admin only), Fetch all new rides (pending)
 //@access Private
@@ -114,6 +132,8 @@ export const getMissions = async(req: AuthRequest, res: Response): Promise<void>
             message: "Missions fetched successfully.",
             data: missions
         })
+        return;
+
     }   catch (error) {
         console.log({ message: "Error fetching missions", error});
         res.status(500).json({success: false, error: "Internal Server error"});
@@ -122,11 +142,12 @@ export const getMissions = async(req: AuthRequest, res: Response): Promise<void>
 }
 
 
+
 export const completeMission = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
         const missionId = req.params.id;
         const userId = req.user?.id;
-        
+
         if(!missionId || !userId) {
             res.status(400).json({
                 success: false,
