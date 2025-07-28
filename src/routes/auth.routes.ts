@@ -148,16 +148,11 @@ router.post('/forgot-password', otpRequestLimiter, forgotPassword)
  *           schema:
  *             type: object
  *             required:
- *               - email
  *               - otp
  *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: johndoe@example.com
  *               otp:
  *                 type: string
- *                 example: "123456"
+ *                 example: "1234"
  *     responses:
  *       200:
  *         description: OTP verified successfully

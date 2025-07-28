@@ -30,7 +30,7 @@ import { validateRequest } from '../middlewares/validate.request';
  *             properties:
  *               name:
  *                 type: string
- *                 example: Falcon 9
+ *                 example: Falcon9/Starship/AtlasV
  *               rocketModel:
  *                 type: string
  *                 example: SpaceX-F9
