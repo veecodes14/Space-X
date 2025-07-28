@@ -66,7 +66,7 @@ router.post('/schedule', authMiddleware, authorizedRoles("admin", "user"), valid
  * @swagger
  * /api/v1/missions/:
  *   post:
- *     summary: Schedule a new mission
+ *     summary: Get missions
  *     tags: [Missions]
  *     security:
  *       - bearerAuth: []

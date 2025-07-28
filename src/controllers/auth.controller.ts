@@ -221,17 +221,17 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 
 export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { otp } = req.body;
-        if (!otp) {
+        const { otp, email } = req.body;
+        if (!otp || !email) {
             res.status(400).json({ success: false, message: 'OTP is required'});
             return
         }
 
-        // const otpRecord = await OTPVerification.findOne({otp: {$exists: true}});
-        // if (!otpRecord) {
-        //     res.status(400).json({success: false, message: "OTP not found or already used"})
-        //     return;
-        // }
+        const otpRecord = await OTPVerification.findOne({otp: {$exists: true}});
+        if (!otpRecord) {
+            res.status(400).json({success: false, message: "OTP not found or already used"})
+            return;
+        }
 
         const otpRecords = await OTPVerification.find({});
 
