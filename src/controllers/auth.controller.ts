@@ -182,6 +182,11 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
             expiresAt: Date.now() + 10 * 60 * 1000,
         }).save();
 
+        const tempToken = jwt.sign({
+            userId: user._id,
+        }, process.env.JWT_SECRET as string, {expiresIn: '10m'})
+
+
         // email html content
         const emailText = 
         ` Hello ${user.name},
@@ -205,7 +210,10 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 
         res.status(200).json({
             success: true,
-            message: "A password reset OTP has been sent to your email. Please check your inbox."
+            message: "A password reset OTP has been sent to your email. Please check your inbox.", 
+            data: {
+                tempToken,
+            }
         }); 
         
     } catch (error: unknown) {
@@ -219,85 +227,143 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 //POST /api/v1/auth/otp/verify
 //@public
 
+// export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { otp, email } = req.body;
+
+//     if (!otp || !email) {
+//       res.status(400).json({ 
+//         success: false, 
+//         message: 'OTP and email are required' });
+//         return;
+//     }
+
+//     console.log('[DEBUG] OTP and email received:', { otp, email });
+
+//     // Find latest OTP record for this email
+//     const otpRecords = await OTPVerification.find({ email }).sort({ createdAt: -1 });
+
+//     if (!otpRecords.length) {
+//       console.log('[DEBUG] No OTP records found for email:', email);
+//        res.status(400).json({ success: false, 
+//         message: 'OTP not found or already used' });
+//         return
+//     }
+
+//     let matchedRecord: any = null;
+
+//     for (const record of otpRecords) {
+//       const isMatch = await bcrypt.compare(otp, record.otp);
+//       if (isMatch) {
+//         matchedRecord = record;
+//         break;
+//       }
+//     }
+
+//     if (!matchedRecord) {
+//       console.log('[DEBUG] No matching OTP found');
+//        res.status(400).json({ success: false,
+//          message: 'Invalid or expired OTP' });
+//          return
+//     }
+
+//     console.log('[DEBUG] Matched OTP record:', matchedRecord);
+
+//     if (matchedRecord.expiresAt < new Date()) {
+//       console.log('[DEBUG] OTP expired at:', matchedRecord.expiresAt);
+//       await OTPVerification.deleteMany({ userId: matchedRecord.userId });
+//        res.status(400).json({ success: false, 
+//         message: 'OTP has expired. Request a new one.' });
+//         return
+//     }
+
+//     const user = await User.findById(matchedRecord.userId);
+//     if (!user) {
+//       console.log('[DEBUG] User not found:', matchedRecord.userId);
+//        res.status(400).json({ success: false, 
+//         message: 'User not found' });
+//         return
+//     }
+
+//     // OTP is valid — issue temporary token
+//     const tempToken = jwt.sign(
+//       { userId: user._id },
+//       process.env.JWT_SECRET as string,
+//       { expiresIn: '10m' }
+//     );
+
+//     await OTPVerification.deleteMany({ userId: user._id });
+
+//     console.log('[DEBUG] OTP verified, temp token issued');
+//     res.status(200).json({
+//       success: true,
+//       message: 'OTP verified successfully. You can reset your password.',
+//       tempToken,
+//     });
+
+//   } catch (error: unknown) {
+//     console.error('[ERROR] OTP verification failed:', error);
+//     res.status(500).json({ success: false, message: 'Internal Server Error' });
+//   }
+// };
+
 export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { otp, email } = req.body;
+    try {
+        const { otp } = req.body;
+        const authHeader = req.headers.authorization;
 
-    if (!otp || !email) {
-      res.status(400).json({ 
-        success: false, 
-        message: 'OTP and email are required' });
-        return;
+        if (!otp) {
+            res.status(400).json({ success: false, message: 'OTP is required' });
+            return;
+        }
+
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ success: false, message: 'Authorization token missing or malformed' });
+            return;
+        }
+
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+        const userId = (decoded as { userId: string }).userId;
+
+        const otpRecord = await OTPVerification.findOne({ userId });
+        if (!otpRecord) {
+            res.status(400).json({ success: false, message: 'OTP not found or already used' });
+            return;
+        }
+
+        if (otpRecord.expiresAt.getTime() < Date.now()) {
+            await OTPVerification.deleteMany({ userId });
+            res.status(400).json({ success: false, message: 'OTP expired. Request a new one.' });
+            return;
+        }
+
+        const isValid = await bcrypt.compare(otp, otpRecord.otp);
+        if (!isValid) {
+            res.status(400).json({ success: false, message: 'Invalid OTP' });
+            return;
+        }
+
+        await OTPVerification.deleteMany({ userId });
+
+        const resetToken = jwt.sign(
+            { userId },
+            process.env.JWT_SECRET!,
+            { expiresIn: '15m' }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'OTP verified. You can now reset your password.',
+            data: resetToken,
+        });
+
+    } catch (error) {
+        console.log({ message: 'Error verifying OTP', error });
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
-
-    console.log('[DEBUG] OTP and email received:', { otp, email });
-
-    // Find latest OTP record for this email
-    const otpRecords = await OTPVerification.find({ email }).sort({ createdAt: -1 });
-
-    if (!otpRecords.length) {
-      console.log('[DEBUG] No OTP records found for email:', email);
-       res.status(400).json({ success: false, 
-        message: 'OTP not found or already used' });
-        return
-    }
-
-    let matchedRecord: any = null;
-
-    for (const record of otpRecords) {
-      const isMatch = await bcrypt.compare(otp, record.otp);
-      if (isMatch) {
-        matchedRecord = record;
-        break;
-      }
-    }
-
-    if (!matchedRecord) {
-      console.log('[DEBUG] No matching OTP found');
-       res.status(400).json({ success: false,
-         message: 'Invalid or expired OTP' });
-         return
-    }
-
-    console.log('[DEBUG] Matched OTP record:', matchedRecord);
-
-    if (matchedRecord.expiresAt < new Date()) {
-      console.log('[DEBUG] OTP expired at:', matchedRecord.expiresAt);
-      await OTPVerification.deleteMany({ userId: matchedRecord.userId });
-       res.status(400).json({ success: false, 
-        message: 'OTP has expired. Request a new one.' });
-        return
-    }
-
-    const user = await User.findById(matchedRecord.userId);
-    if (!user) {
-      console.log('[DEBUG] User not found:', matchedRecord.userId);
-       res.status(400).json({ success: false, 
-        message: 'User not found' });
-        return
-    }
-
-    // OTP is valid — issue temporary token
-    const tempToken = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET as string,
-      { expiresIn: '10m' }
-    );
-
-    await OTPVerification.deleteMany({ userId: user._id });
-
-    console.log('[DEBUG] OTP verified, temp token issued');
-    res.status(200).json({
-      success: true,
-      message: 'OTP verified successfully. You can reset your password.',
-      tempToken,
-    });
-
-  } catch (error: unknown) {
-    console.error('[ERROR] OTP verification failed:', error);
-    res.status(500).json({ success: false, message: 'Internal Server Error' });
-  }
 };
+
 
 
 // export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
@@ -377,82 +443,165 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {
     try {
         const { newPassword } = req.body;
-        const authHeader = req.headers.authorization;
+const authHeader = req.headers.authorization;
 
-        if (!newPassword || newPassword.length < 8 ) {
-            res.status(400).json({ success: false, message: 'New Password is required and must be at least 8 characters'});
-            return
-        }
+if (!newPassword || newPassword.length < 8) {
+    res.status(400).json({ success: false, message: 'New Password is required and must be at least 8 characters' });
+    return;
+}
 
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            res.status(401).json({success: false, message: 'Authorization header missing or is invalid.' })
-            return;
-        }
+if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ success: false, message: 'Authorization header missing or is invalid.' });
+    return;
+}
 
-        // extract temptoken from auth header
-        const tempToken = authHeader.split(" ")[1];
+const tempToken = authHeader.split(" ")[1];
+let decoded: CustomJwtPayload;
 
-        let decoded: CustomJwtPayload;
-
-        try {
-            decoded = jwt.verify(tempToken, JWT_SECRET) as CustomJwtPayload;
-        } catch (err: any) {
-            if (err.name == "TokenExpiredError") {
-                res.status(401).json({
-                    success: false,
-                    message: "Reset token has expired. Please request for a new OTP.",
-                });
-                return;
-            }
-            res.status(400).json({
-                success: false,
-                message: "Invalid reset token.",
-            })
-            return;
-        }
-
-        if (!decoded || !decoded.userId) {
-            res.status(400).json({ error: "Invalid or expired reset password token"})
-            return;
-        }
-
-        const user = await User.findById(decoded.userId);
-        if (!user) {
-            res.status(404).json({ error: "User not found" });
-            return;
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-        user.passwordChangedAt = new Date(Date.now());
-        await user.save();
-
-        // send confirmation email
-
-        const emailText =
-        ` Hello ${user.name},
-        Your password has been successfully changed.
-        If you did not perform this action, please contact our support team immediately.
-    
-        Best Regards, 
-        Space-X Support Team`;
-
-        await sendEmail({
-            to: user.email,
-            subject: "Password Changed Successfully",
-            text: emailText,
+try {
+    decoded = jwt.verify(tempToken, JWT_SECRET) as CustomJwtPayload;
+} catch (err: any) {
+    if (err.name == "TokenExpiredError") {
+        res.status(401).json({
+            success: false,
+            message: "Reset token has expired. Please request for a new OTP.",
         });
+        return;
+    }
+    res.status(400).json({
+        success: false,
+        message: "Invalid reset token.",
+    });
+    return;
+}
 
-        res.status(200).json({
-            success: true,
-            message: "Password reset successfully. You can now login with a new password",
+if (!decoded || !decoded.userId) {
+    res.status(400).json({ error: "Invalid or expired reset password token" });
+    return;
+}
 
-        })
+// Hash the new password
+const salt = await bcrypt.genSalt(10);
+const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    } catch (error: unknown) {
+// Update only password fields
+const user = await User.findByIdAndUpdate(
+    decoded.userId,
+    {
+        password: hashedPassword,
+        passwordChangedAt: new Date(),
+    },
+    { new: true }
+);
+
+if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+}
+
+// Send confirmation email
+const emailText = ` Hello ${user.name},
+Your password has been successfully changed.
+If you did not perform this action, please contact our support team immediately.
+
+Best Regards, 
+Space-X Support Team`;
+
+await sendEmail({
+    to: user.email,
+    subject: "Password Changed Successfully",
+    text: emailText,
+});
+
+res.status(200).json({
+    success: true,
+    message: "Password reset successfully. You can now login with a new password",
+});
+        // const { newPassword } = req.body;
+        // const authHeader = req.headers.authorization;
+
+        // if (!newPassword || newPassword.length < 8) {
+        //     res.status(400).json({ success: false, message: 'New Password is required and must be at least 8 characters' });
+        //     return;
+        // }
+        // if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        //     res.status(401).json({ success: false, message: 'Unauthorized request. Please verify OTP first.' });
+        //     return;
+        // }
+
+        // //Extract tempToken from the Authorization header
+        // const tempToken = authHeader.split(" ")[1];
+
+        // // const decodedToken = jwt.verify(tempToken, ACCESS_TOKEN_SECRET);
+        // // const decoded = decodedToken as unknown as CustomJwtPayload;
+        // let decoded: CustomJwtPayload;
+
+        // try {
+        //     decoded = jwt.verify(tempToken, JWT_SECRET) as CustomJwtPayload;
+        // } catch (err: any) {
+        //     if (err.name === "TokenExpiredError") {
+        //         res.status(401).json({
+        //             success: false,
+        //             message: "Reset token has expired. Please request a new OTP.",
+        //         });
+        //         return;
+        //     }
+        //     res.status(400).json({
+        //         success: false,
+        //         message: "Invalid reset token.",
+        //     });
+        //     return;
+        // }
+
+        // if (!decoded || !decoded.userId) {
+        //     res.status(400).json({ error: "Invalid or expired reset password token" });
+        //     return;
+        // }
+
+        // const user = await User.findById(decoded.userId);
+        // if (!user) {
+        //     res.status(404).json({ error: "User not found" });
+        //     return;
+        // }
+
+        // const salt = await bcrypt.genSalt(10);
+        // user.password = await bcrypt.hash(newPassword, salt);
+        // user.passwordChangedAt = new Date(Date.now());
+        // await user.save();
+
+        // //Send confirmation email
+        // const emailText =
+        //     ` Hello ${user.name},
+        // Your password has been successfully changed.
+        // If you did not perform this action, please contact our support team immediately.
+    
+        // Best Regards, 
+        // Space-X Support Team`;
+
+
+        // await sendEmail({
+        //     to: user.email,
+        //     subject: "✅ Password Changed Successfully Updated",
+        //     text: emailText,
+        // });
+
+        // res.status(200).json({
+        //     success: true,
+        //     message: "Password reset successfully. You can now log in with your new password.",
+        // })
+
+
+    }
+        catch (error: unknown) {
         console.log({message: "Error resetting password:", error: error});
         res.status(500).json({success: false, error: "Internal Server Error"});
         return
     }
 }
+
+
+
+
+
+
 
