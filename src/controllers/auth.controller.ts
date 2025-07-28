@@ -220,74 +220,156 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 //@public
 
 export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { otp, email } = req.body;
-        if (!otp || !email) {
-            res.status(400).json({ success: false, message: 'OTP is required'});
-            return
-        }
+  try {
+    const { otp, email } = req.body;
 
-        const otpRecord = await OTPVerification.findOne({otp: {$exists: true}});
-        if (!otpRecord) {
-            res.status(400).json({success: false, message: "OTP not found or already used"})
-            return;
-        }
+    if (!otp || !email) {
+      res.status(400).json({ 
+        success: false, 
+        message: 'OTP and email are required' });
+        return;
+    }
 
-        const otpRecords = await OTPVerification.find({});
+    console.log('[DEBUG] OTP and email received:', { otp, email });
 
-        let matchedRecord = null;
-        for (const record of otpRecords) {
-            const isMatch = await bcrypt.compare(otp, record.otp);
-            if (isMatch) {
-                matchedRecord = record;
-                break;
-            }
-        }
+    // Find latest OTP record for this email
+    const otpRecords = await OTPVerification.find({ email }).sort({ createdAt: -1 });
 
-        if (!matchedRecord) {
-            res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
-            return;
-        }
-
-
-        if (matchedRecord.expiresAt < new Date()) {
-            await OTPVerification.deleteMany({ userId: matchedRecord.userId });
-            res.status(400).json({success: false, message: "OTP has expired. Request a new one."})
-            return;
-        }
-        
-        const user = await User.findById(matchedRecord.userId);
-        if (!user) {
-            res.status(400).json({success: false, message: "User not found"});
-            return
-        }
-
-        // const validOtp = await bcrypt.compare(otp, matchedRecord.otp);
-        // if (!validOtp) {
-        //     res.status(400).json({ success: false, message: 'Invalid OTP' });
-        //     return;
-        // }
-
-        // temp token if OTP is valid
-
-        const tempToken = jwt.sign({
-            userId: user._id,
-        }, process.env.JWT_SECRET as string, {expiresIn: '10m'})
-
-        await OTPVerification.deleteMany({userId: user._id})
-
-        res.status(200).json({
-            success: true,
-            message: "OTP verified successfully. You can reset your password.",
-            tempToken
-        });
-        
-    } catch (error: unknown) {
-        console.log({message: "Error verifying OTP:", error: error});
-        res.status(500).json({success: false, error: "Internal Server Error"})
+    if (!otpRecords.length) {
+      console.log('[DEBUG] No OTP records found for email:', email);
+       res.status(400).json({ success: false, 
+        message: 'OTP not found or already used' });
         return
     }
-}
+
+    let matchedRecord: any = null;
+
+    for (const record of otpRecords) {
+      const isMatch = await bcrypt.compare(otp, record.otp);
+      if (isMatch) {
+        matchedRecord = record;
+        break;
+      }
+    }
+
+    if (!matchedRecord) {
+      console.log('[DEBUG] No matching OTP found');
+       res.status(400).json({ success: false,
+         message: 'Invalid or expired OTP' });
+         return
+    }
+
+    console.log('[DEBUG] Matched OTP record:', matchedRecord);
+
+    if (matchedRecord.expiresAt < new Date()) {
+      console.log('[DEBUG] OTP expired at:', matchedRecord.expiresAt);
+      await OTPVerification.deleteMany({ userId: matchedRecord.userId });
+       res.status(400).json({ success: false, 
+        message: 'OTP has expired. Request a new one.' });
+        return
+    }
+
+    const user = await User.findById(matchedRecord.userId);
+    if (!user) {
+      console.log('[DEBUG] User not found:', matchedRecord.userId);
+       res.status(400).json({ success: false, 
+        message: 'User not found' });
+        return
+    }
+
+    // OTP is valid — issue temporary token
+    const tempToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '10m' }
+    );
+
+    await OTPVerification.deleteMany({ userId: user._id });
+
+    console.log('[DEBUG] OTP verified, temp token issued');
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully. You can reset your password.',
+      tempToken,
+    });
+
+  } catch (error: unknown) {
+    console.error('[ERROR] OTP verification failed:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+
+// export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
+//     try {
+//         const { otp} = req.body;
+//         if (!otp ) {
+//             res.status(400).json({ success: false, message: 'OTP is required'});
+//             return
+//         }
+
+//         // const otpRecord = await OTPVerification.findOne({otp: {$exists: true}});
+//         const otpRecord = await OTPVerification.findOne({ email }).sort({ createdAt: -1 });
+//         if (!otpRecord) {
+//             res.status(400).json({success: false, message: "OTP not found or already used"})
+//             return;
+//         }
+
+//         const otpRecords = await OTPVerification.find({});
+
+//         let matchedRecord = null;
+//         for (const record of otpRecords) {
+//             const isMatch = await bcrypt.compare(otp, record.otp);
+//             if (isMatch) {
+//                 matchedRecord = record;
+//                 break;
+//             }
+//         }
+
+//         if (!matchedRecord) {
+//             res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+//             return;
+//         }
+
+
+//         if (matchedRecord.expiresAt < new Date()) {
+//             await OTPVerification.deleteMany({ userId: matchedRecord.userId });
+//             res.status(400).json({success: false, message: "OTP has expired. Request a new one."})
+//             return;
+//         }
+        
+//         const user = await User.findById(matchedRecord.userId);
+//         if (!user) {
+//             res.status(400).json({success: false, message: "User not found"});
+//             return
+//         }
+
+//         // const validOtp = await bcrypt.compare(otp, matchedRecord.otp);
+//         // if (!validOtp) {
+//         //     res.status(400).json({ success: false, message: 'Invalid OTP' });
+//         //     return;
+//         // }
+
+//         // temp token if OTP is valid
+
+//         const tempToken = jwt.sign({
+//             userId: user._id,
+//         }, process.env.JWT_SECRET as string, {expiresIn: '10m'})
+
+//         await OTPVerification.deleteMany({userId: user._id})
+
+//         res.status(200).json({
+//             success: true,
+//             message: "OTP verified successfully. You can reset your password.",
+//             tempToken
+//         });
+        
+//     } catch (error: unknown) {
+//         console.log({message: "Error verifying OTP:", error: error});
+//         res.status(500).json({success: false, error: "Internal Server Error"})
+//         return
+//     }
+// }
 
 //Controller for resetting password
 //PUT /api/v1/auth/otp/reset
