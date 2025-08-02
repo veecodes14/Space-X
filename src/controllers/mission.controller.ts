@@ -40,7 +40,7 @@ export const scheduleMission = async(req: AuthRequest, res: Response): Promise<v
 
         const existingRocket = await Rocket.findById(rocket)
 
-        if (existingRocket) {
+        if (!existingRocket) {
             res.status(404).json({
                 success: false,
                 message: "Rocket does not exist"

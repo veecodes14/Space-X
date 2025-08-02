@@ -2,8 +2,8 @@
 Ride hailing application
 
 # Space-X
-Ride Hailing System Backend core built in Nodejs and TypeScript
-SpaceX is a mission scheduling service with features such as: authentication, ride request management, and role-based access (admin, user). Built using TypeScript, Node.js, Express, and MongoDB.
+Backend core built in Nodejs and TypeScript
+ Built using TypeScript, Node.js, Express, and MongoDB.
 
 ## Tech Stack
 - TypeScript
